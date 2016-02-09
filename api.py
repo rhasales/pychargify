@@ -99,6 +99,8 @@ class ChargifyBase(object):
     """
     __ignore__ = ['api_key', 'sub_domain', 'base_host', 'request_host',
         'id', '__xmlnodename__']
+    
+    __single_value_attribute_types__ = {}
 
     api_key = ''
     sub_domain = ''
@@ -150,6 +152,9 @@ class ChargifyBase(object):
                             if node_type.nodeValue == 'datetime':
                                 node_value = datetime.datetime.fromtimestamp(
                                     iso8601.parse(node_value))
+                    elif obj.__single_value_attribute_types__.has_key(childnodes.nodeName) :
+                        node_value = obj.__single_value_attribute_types__.get(childnodes.nodeName)(node_value)
+                        
                     obj.__setattr__(childnodes.nodeName, node_value)
         return obj
 
@@ -287,7 +292,19 @@ class ChargifyBase(object):
 
         # Unprocessable Entity Error
         elif response.status == 422:
-            raise ChargifyUnProcessableEntity()
+            
+            error = ChargifyUnProcessableEntity()
+            xml = response.read()
+            if xml :
+                dom = minidom.parseString(self.fix_xml_encoding(xml))
+                error.errors = []
+                for errorNodes in dom.childNodes :
+                    
+                    for errorNode in errorNodes.childNodes :
+                        
+                        error.errors.append(errorNode.firstChild.data)
+                
+            raise error
 
         # Generic Server Errors
         elif response.status in [405, 500]:
@@ -517,6 +534,33 @@ class ChargifySubscription(ChargifyBase):
         return self._applyS(self._put("/subscriptions/" + self.id + ".xml",
             xml), self.__name__, "subscription")
 
+    def delayed_cancel(self, message):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<subscription>
+  <cancel_at_end_of_period>1</cancel_at_end_of_period>
+  <cancellation_message>
+    %s
+  </cancellation_message>
+</subscription>""" % (message)
+
+    def delayed_product_change(self, product_handle):
+        """
+        This method schedules the product change to happen automatically at the 
+        subscription’s next renewal date. 
+        
+        @param product_handle: the new product
+        """
+        
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<subscription>
+  <product_handle>%s</product_handle>
+  <product_change_delayed>true</product_change_delayed>
+</subscription>""" % (product_handle)
+
+        xml = self._put("/subscriptions/" + self.id + ".xml", xml)
+        print xml
+        return None
+
     def unsubscribe(self, message):
         xml = """<?xml version="1.0" encoding="UTF-8"?>
 <subscription>
@@ -527,6 +571,42 @@ class ChargifySubscription(ChargifyBase):
 
         self._delete("/subscriptions/" + self.id + ".xml", xml)
 
+    def preview_migrate(self, product_id):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<migration>
+  <product_id>%s</product_id>
+</migration>""" % (product_id)
+        #end improper indentation
+
+        return self._applyS(self._post("/subscriptions/" + self.id + "/migrations/preview.xml",
+            xml), "ChargifyMigration", "migration")
+
+    def migrate(self, product_id):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<migration>
+  <product_id>%s</product_id>
+</migration>""" % (product_id)
+        #end improper indentation
+
+        return self._applyS(self._post("/subscriptions/" + self.id + "/migrations.xml",
+            xml), "ChargifyMigration", "migration")
+
+class ChargifyMigration(ChargifyBase):
+    
+    __name__ = 'ChargifyMigration'
+    __attribute_types__ = {}
+    __single_value_attribute_types__ = {
+        "prorated_adjustment_in_cents" : int,
+        "charge_in_cents" : int,
+        "payment_due_in_cents" : int,
+        "credit_applied_in_cents" : int
+    }
+    __xmlnodename__ = 'migration'
+    
+    prorated_adjustment_in_cents = None
+    charge_in_cents = None
+    payment_due_in_cents = None
+    credit_applied_in_cents = None
 
 class ChargifyCreditCard(ChargifyBase):
     """

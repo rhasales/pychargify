@@ -273,7 +273,7 @@ class ChargifyBase(object):
         http.putheader("Content-Type", 'text/xml; charset="UTF-8"')
         http.endheaders()
 
-        print('sending: %s' % data)
+        #print('sending: %s' % data)
 
         http.send(data)
         response = http.getresponse()
@@ -589,7 +589,7 @@ class ChargifySubscription(ChargifyBase):
         #end improper indentation
 
         return self._applyS(self._post("/subscriptions/" + self.id + "/migrations.xml",
-            xml), "ChargifyMigration", "migration")
+            xml), "ChargifySubscription", "subscription")
 
 class ChargifyMigration(ChargifyBase):
     

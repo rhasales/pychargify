@@ -152,6 +152,8 @@ class ChargifyBase(object):
                             if node_type.nodeValue == 'datetime':
                                 node_value = datetime.datetime.fromtimestamp(
                                     iso8601.parse(node_value))
+                            elif node_type.nodeValue == 'integer':
+                                node_value = int(node_value)
                     elif obj.__single_value_attribute_types__.has_key(childnodes.nodeName) :
                         node_value = obj.__single_value_attribute_types__.get(childnodes.nodeName)(node_value)
                         
@@ -326,7 +328,7 @@ class ChargifyBase(object):
         }
 
         if self.id:
-            obj = self._applyS(self._put('/' + url + '/' + self.id + '.xml',
+            obj = self._applyS(self._put('/' + url + '/' + str(self.id) + '.xml',
                 dom.toxml(encoding="utf-8")), self.__name__, node_name)
             if obj:
                 if type(obj.updated_at) == datetime.datetime:
@@ -519,10 +521,14 @@ class ChargifySubscription(ChargifyBase):
         return self._save('subscriptions', 'subscription')
 
     def resetBalance(self):
-        self._put("/subscriptions/" + self.id + "/reset_balance.xml", "")
+        self._put("/subscriptions/" + str(self.id) + "/reset_balance.xml", "")
+
+    def getTransactions(self):
+        obj = ChargifyTransaction(self.api_key, self.sub_domain)
+        return obj.getByCustomerId(self.id)
 
     def reactivate(self):
-        self._put("/subscriptions/" + self.id + "/reactivate.xml", "")
+        self._put("/subscriptions/" + str(self.id) + "/reactivate.xml", "")
 
     def upgrade(self, toProductHandle):
         xml = """<?xml version="1.0" encoding="UTF-8"?>
@@ -531,7 +537,7 @@ class ChargifySubscription(ChargifyBase):
   </subscription>""" % (toProductHandle)
         #end improper indentation
 
-        return self._applyS(self._put("/subscriptions/" + self.id + ".xml",
+        return self._applyS(self._put("/subscriptions/" + str(self.id) + ".xml",
             xml), self.__name__, "subscription")
 
     def delayed_cancel(self, message):
@@ -557,7 +563,7 @@ class ChargifySubscription(ChargifyBase):
   <product_change_delayed>true</product_change_delayed>
 </subscription>""" % (product_handle)
 
-        xml = self._put("/subscriptions/" + self.id + ".xml", xml)
+        xml = self._put("/subscriptions/" + str(self.id) + ".xml", xml)
         print xml
         return None
 
@@ -569,7 +575,7 @@ class ChargifySubscription(ChargifyBase):
   </cancellation_message>
 </subscription>""" % (message)
 
-        self._delete("/subscriptions/" + self.id + ".xml", xml)
+        self._delete("/subscriptions/" + str(self.id) + ".xml", xml)
 
     def preview_migrate(self, product_id):
         xml = """<?xml version="1.0" encoding="UTF-8"?>
@@ -578,7 +584,7 @@ class ChargifySubscription(ChargifyBase):
 </migration>""" % (product_id)
         #end improper indentation
 
-        return self._applyS(self._post("/subscriptions/" + self.id + "/migrations/preview.xml",
+        return self._applyS(self._post("/subscriptions/" + str(self.id) + "/migrations/preview.xml",
             xml), "ChargifyMigration", "migration")
 
     def migrate(self, product_id):
@@ -588,8 +594,40 @@ class ChargifySubscription(ChargifyBase):
 </migration>""" % (product_id)
         #end improper indentation
 
-        return self._applyS(self._post("/subscriptions/" + self.id + "/migrations.xml",
+        return self._applyS(self._post("/subscriptions/" + str(self.id) + "/migrations.xml",
             xml), "ChargifySubscription", "subscription")
+
+class ChargifyTransaction(ChargifyBase):
+    
+    __name__ = 'ChargifyTransaction'
+    __attribute_types__ = {}
+    __single_value_attribute_types__ = {
+        "id" : int,
+        "amount_in_cents" : int,
+        "starting_balance_in_cents" : int,
+        "ending_balance_in_cents" : int,
+        "subscription_id" : int
+    }
+    __xmlnodename__ = 'transaction'
+    
+    transaction_type = None
+    id = None
+    amount_in_cents = None
+    created_at = None
+    starting_balance_in_cents = None
+    ending_balance_in_cents = None
+    memo = None
+    subscription_id = None
+    product_id = None
+    success = None
+    payment_id = None
+    kind = None
+    gateway_transaction_id = None
+    gateway_order_id = None
+    
+    def getByCustomerId(self, customer_id):
+        return self._applyA(self._get('/subscriptions/' + str(customer_id) +
+            '/transactions.xml'), self.__name__, 'transaction')
 
 class ChargifyMigration(ChargifyBase):
     

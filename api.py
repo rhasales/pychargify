@@ -610,6 +610,11 @@ class ChargifyComponent(ChargifyBase):
     __attribute_types__ = {}
     __xmlnodename__ = 'component'
 
+    def __init__(self, apikey, subdomain, nodename=''):
+        super(ChargifyComponent, self).__init__(apikey, subdomain)
+        if nodename:
+            self.__xmlnodename__ = nodename
+
     def getBySubscriptionId(self, subscription_id):
         return self._applyA(self._get('/subscriptions/' + str(subscription_id) +
             '/components.xml'), self.__name__, 'component')
@@ -772,6 +777,9 @@ class Chargify:
 
     def Subscription(self, nodename=''):
         return ChargifySubscription(self.api_key, self.sub_domain, nodename)
+
+    def Component(self, nodename=''):
+        return ChargifyComponent(self.api_key, self.sub_domain, nodename)
 
     def CreditCard(self, nodename=''):
         return ChargifyCreditCard(self.api_key, self.sub_domain, nodename)

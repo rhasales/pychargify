@@ -600,6 +600,21 @@ class ChargifySubscription(ChargifyBase):
         return self._applyS(self._post("/subscriptions/" + str(self.id) + "/migrations.xml",
             xml), "ChargifySubscription", "subscription")
 
+
+class ChargifyComponent(ChargifyBase):
+    """
+    Represents Chargify Components
+    @license    GNU General Public License
+    """
+    __name__ = 'ChargifyComponent'
+    __attribute_types__ = {}
+    __xmlnodename__ = 'component'
+
+    def getBySubscriptionId(self, subscription_id):
+        return self._applyA(self._get('/subscriptions/' + str(subscription_id) +
+            '/components.xml'), self.__name__, 'component')
+
+
 class ChargifyTransaction(ChargifyBase):
     
     __name__ = 'ChargifyTransaction'

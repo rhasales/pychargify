@@ -278,7 +278,9 @@ class ChargifyBase(object):
         http.putheader("Content-Type", 'text/xml; charset="UTF-8"')
         http.endheaders()
 
-        #print('sending: %s' % data)
+        # print('sending: %s' % data)
+        # print('url: %s' % url)
+        # print('method: %s' % method)
 
         http.send(data)
         response = http.getresponse()
@@ -615,9 +617,27 @@ class ChargifyComponent(ChargifyBase):
         if nodename:
             self.__xmlnodename__ = nodename
 
-    def getBySubscriptionId(self, subscription_id):
+    def get_by_subscription_id(self, subscription_id):
         return self._applyA(self._get('/subscriptions/' + str(subscription_id) +
             '/components.xml'), self.__name__, 'component')
+
+    def toggle(self, subscription_id, component_id, toggle_value):
+        """
+        This method enable or disable a component for a given subscription.
+
+        @param subscription_id: the subscription id
+        @param subscription_id: the component id to toggle
+        @param toggle_value: 0 to disable 1 to enable
+
+        """
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<allocation>
+  <quantity>%s</quantity>
+</allocation>""" % toggle_value
+
+        return self._applyS(self._post("/subscriptions/" + str(subscription_id) + "/components/" + str(component_id) + "/allocations.xml",xml),
+                            "ChargifyComponent", "component")
+
 
 
 class ChargifyTransaction(ChargifyBase):

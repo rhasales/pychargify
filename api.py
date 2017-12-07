@@ -621,19 +621,19 @@ class ChargifyComponent(ChargifyBase):
         return self._applyA(self._get('/subscriptions/' + str(subscription_id) +
             '/components.xml'), self.__name__, 'component')
 
-    def toggle(self, subscription_id, component_id, toggle_value):
+    def allocate(self, subscription_id, component_id, quantity):
         """
         This method enable or disable a component for a given subscription.
 
         @param subscription_id: the subscription id
         @param subscription_id: the component id to toggle
-        @param toggle_value: 0 to disable 1 to enable
+        @param quantity: integer quantity, use  1 or 0 for on/off components
 
         """
         xml = """<?xml version="1.0" encoding="UTF-8"?>
 <allocation>
   <quantity>%s</quantity>
-</allocation>""" % toggle_value
+</allocation>""" % (quantity)
 
         return self._applyS(self._post("/subscriptions/" + str(subscription_id) + "/components/" + str(component_id) + "/allocations.xml",xml),
                             "ChargifyComponent", "component")

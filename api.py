@@ -612,12 +612,14 @@ class ChargifyComponent(ChargifyBase):
     __attribute_types__ = {}
     __xmlnodename__ = 'component'
 
+    allocated_quantity = None
+
     def __init__(self, apikey, subdomain, nodename=''):
         super(ChargifyComponent, self).__init__(apikey, subdomain)
         if nodename:
             self.__xmlnodename__ = nodename
 
-    def get_by_subscription_id(self, subscription_id):
+    def get_all_by_subscription_id(self, subscription_id):
         return self._applyA(self._get('/subscriptions/' + str(subscription_id) +
             '/components.xml'), self.__name__, 'component')
 
@@ -638,6 +640,10 @@ class ChargifyComponent(ChargifyBase):
         return self._applyS(self._post("/subscriptions/" + str(subscription_id) + "/components/" + str(component_id) + "/allocations.xml",xml),
                             "ChargifyComponent", "component")
 
+    def get_by_component_id(self, subscription_id, component_id):
+
+        return self._applyA(self._get("/subscriptions/" + str(subscription_id) + '/components/' + str(component_id) +
+                                      ".xml"), self.__name__, 'component')
 
 
 class ChargifyTransaction(ChargifyBase):

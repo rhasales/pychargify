@@ -623,7 +623,7 @@ class ChargifyComponent(ChargifyBase):
 
     def allocate(self, subscription_id, component_id, quantity):
         """
-        This method enable or disable a component for a given subscription.
+        This method allocates quantities for a given component.
 
         @param subscription_id: the subscription id
         @param subscription_id: the component id to toggle

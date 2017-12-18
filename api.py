@@ -153,10 +153,7 @@ class ChargifyBase(object):
                                 node_value = datetime.datetime.fromtimestamp(
                                     iso8601.parse(node_value))
                             elif node_type.nodeValue == 'integer':
-                                try:
-                                    node_value = int(node_value)
-                                except:
-                                    pass
+                                node_value = int(node_value)
                     elif obj.__single_value_attribute_types__.has_key(childnodes.nodeName) :
                         node_value = obj.__single_value_attribute_types__.get(childnodes.nodeName)(node_value)
                         

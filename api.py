@@ -624,9 +624,9 @@ class ChargifyComponent(ChargifyBase):
         """
         This method allocates quantities for a given component.
 
-        @param subscription_id: the subscription id
-        @param subscription_id: the component id to toggle
-        @param quantity: integer quantity, use  1 or 0 for on/off components
+        @param subscription_id: The subscription id
+        @param component_id: The component id to allocate
+        @param quantity: Integer quantity, use  1 or 0 for On/Off components
 
         """
         xml = """<?xml version="1.0" encoding="UTF-8"?>

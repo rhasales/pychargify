@@ -275,7 +275,9 @@ class ChargifyBase(object):
         http.putheader("Content-Type", 'text/xml; charset="UTF-8"')
         http.endheaders()
 
-        #print('sending: %s' % data)
+        # print('sending: %s' % data)
+        # print('url: %s' % url)
+        # print('method: %s' % method)
 
         http.send(data)
         response = http.getresponse()
@@ -597,6 +599,50 @@ class ChargifySubscription(ChargifyBase):
         return self._applyS(self._post("/subscriptions/" + str(self.id) + "/migrations.xml",
             xml), "ChargifySubscription", "subscription")
 
+
+class ChargifyComponent(ChargifyBase):
+    """
+    Represents Chargify Components
+    @license    GNU General Public License
+    """
+    __name__ = 'ChargifyComponent'
+    __attribute_types__ = {}
+    __xmlnodename__ = 'component'
+
+    allocated_quantity = None
+
+    def __init__(self, apikey, subdomain, nodename=''):
+        super(ChargifyComponent, self).__init__(apikey, subdomain)
+        if nodename:
+            self.__xmlnodename__ = nodename
+
+    def get_all_by_subscription_id(self, subscription_id):
+        return self._applyA(self._get('/subscriptions/' + str(subscription_id) +
+            '/components.xml'), self.__name__, 'component')
+
+    def allocate(self, subscription_id, component_id, quantity):
+        """
+        This method allocates quantities for a given component.
+
+        @param subscription_id: The subscription id
+        @param component_id: The component id to allocate
+        @param quantity: Integer quantity, use  1 or 0 for On/Off components
+
+        """
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<allocation>
+  <quantity>%s</quantity>
+</allocation>""" % (quantity)
+
+        return self._applyS(self._post("/subscriptions/" + str(subscription_id) + "/components/" + str(component_id) + "/allocations.xml",xml),
+                            "ChargifyComponent", "component")
+
+    def get_by_component_id(self, subscription_id, component_id):
+
+        return self._applyA(self._get("/subscriptions/" + str(subscription_id) + '/components/' + str(component_id) +
+                                      ".xml"), self.__name__, 'component')
+
+
 class ChargifyTransaction(ChargifyBase):
     
     __name__ = 'ChargifyTransaction'
@@ -754,6 +800,9 @@ class Chargify:
 
     def Subscription(self, nodename=''):
         return ChargifySubscription(self.api_key, self.sub_domain, nodename)
+
+    def Component(self, nodename=''):
+        return ChargifyComponent(self.api_key, self.sub_domain, nodename)
 
     def CreditCard(self, nodename=''):
         return ChargifyCreditCard(self.api_key, self.sub_domain, nodename)

@@ -655,7 +655,6 @@ class ChargifyComponent(ChargifyBase):
 
 
 class ChargifyPrice(ChargifyBase):
-    # TODO: not used, this could be the object type of each array element
     __name__ = 'ChargifyPrice'
     __attribute_types__ = {}
     __xmlnodename__ = 'price'
@@ -677,7 +676,7 @@ class ChargifyPrice(ChargifyBase):
 class ChargifyPricePoint(ChargifyBase):
     __name__ = 'ChargifyPricePoint'
     __attribute_types__ = {
-        # 'prices': 'ChargifyPrice' # TODO: show prices array, each element should be ChargifyPrice?
+        'prices': 'ChargifyPrice'
     }
     __xmlnodename__ = 'price_point'
 

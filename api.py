@@ -22,6 +22,8 @@ Author: Paul Trippett (paul@pyhub.com)
 import httplib
 import base64
 import datetime
+from decimal import Decimal
+
 import iso8601
 from itertools import chain
 from xml.dom import minidom
@@ -161,6 +163,8 @@ class ChargifyBase(object):
                                     iso8601.parse(node_value))
                             elif node_type.nodeValue == 'integer':
                                 node_value = int(node_value)
+                            elif node_type.nodeValue == 'decimal':
+                                node_value = Decimal(node_value)
                     elif obj.__single_value_attribute_types__.has_key(childnodes.nodeName) :
                         node_value = obj.__single_value_attribute_types__.get(childnodes.nodeName)(node_value)
 

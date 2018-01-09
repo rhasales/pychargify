@@ -99,7 +99,7 @@ class ChargifyBase(object):
     """
     __ignore__ = ['api_key', 'sub_domain', 'base_host', 'request_host',
         'id', '__xmlnodename__']
-    
+
     __single_value_attribute_types__ = {}
 
     api_key = ''
@@ -144,6 +144,13 @@ class ChargifyBase(object):
                         self._applyS(childnodes.toxml(),
                         self.__attribute_types__[childnodes.nodeName],
                             childnodes.nodeName))
+                elif "type" in  childnodes.attributes.keys() and childnodes.attributes["type"] == "array" :
+                    children = list()
+                    for subChildNode in childnodes.childNodes :
+                        children.apend(self.__get_object_from_node(subChildNode, subChildNode.nodeName))
+
+                    obj.__setattr__(childnodes.nodeName, children)
+
                 else:
                     node_value = self.__get_xml_value(childnodes.childNodes)
                     if "type" in  childnodes.attributes.keys():
@@ -156,7 +163,7 @@ class ChargifyBase(object):
                                 node_value = int(node_value)
                     elif obj.__single_value_attribute_types__.has_key(childnodes.nodeName) :
                         node_value = obj.__single_value_attribute_types__.get(childnodes.nodeName)(node_value)
-                        
+
                     obj.__setattr__(childnodes.nodeName, node_value)
         return obj
 
@@ -296,18 +303,18 @@ class ChargifyBase(object):
 
         # Unprocessable Entity Error
         elif response.status == 422:
-            
+
             error = ChargifyUnProcessableEntity()
             xml = response.read()
             if xml :
                 dom = minidom.parseString(self.fix_xml_encoding(xml))
                 error.errors = []
                 for errorNodes in dom.childNodes :
-                    
+
                     for errorNode in errorNodes.childNodes :
-                        
+
                         error.errors.append(errorNode.firstChild.data)
-                
+
             raise error
 
         # Generic Server Errors
@@ -558,7 +565,7 @@ class ChargifySubscription(ChargifyBase):
         
         @param product_handle: the new product
         """
-        
+
         xml = """<?xml version="1.0" encoding="UTF-8"?>
 <subscription>
   <product_handle>%s</product_handle>
@@ -684,7 +691,7 @@ class ChargifyPricePoint(ChargifyBase):
 
 
 class ChargifyTransaction(ChargifyBase):
-    
+
     __name__ = 'ChargifyTransaction'
     __attribute_types__ = {}
     __single_value_attribute_types__ = {
@@ -695,7 +702,7 @@ class ChargifyTransaction(ChargifyBase):
         "subscription_id" : int
     }
     __xmlnodename__ = 'transaction'
-    
+
     transaction_type = None
     id = None
     amount_in_cents = None
@@ -710,13 +717,13 @@ class ChargifyTransaction(ChargifyBase):
     kind = None
     gateway_transaction_id = None
     gateway_order_id = None
-    
+
     def getByCustomerId(self, customer_id):
         return self._applyA(self._get('/subscriptions/' + str(customer_id) +
             '/transactions.xml'), self.__name__, 'transaction')
 
 class ChargifyMigration(ChargifyBase):
-    
+
     __name__ = 'ChargifyMigration'
     __attribute_types__ = {}
     __single_value_attribute_types__ = {
@@ -726,7 +733,7 @@ class ChargifyMigration(ChargifyBase):
         "credit_applied_in_cents" : int
     }
     __xmlnodename__ = 'migration'
-    
+
     prorated_adjustment_in_cents = None
     charge_in_cents = None
     payment_due_in_cents = None

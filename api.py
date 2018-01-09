@@ -643,6 +643,46 @@ class ChargifyComponent(ChargifyBase):
                                       ".xml"), self.__name__, 'component')
 
 
+class ChargifyPrice(ChargifyBase):
+    # TODO: not used, this could be the object type of each array element
+    __name__ = 'ChargifyPrice'
+    __attribute_types__ = {}
+    __xmlnodename__ = 'price'
+
+    id = None
+    component_id = None
+    starting_quantity = ''
+    ending_quantity = ''
+    unit_price = ''
+    price_point_id = None
+    formatted_unit_price = ''
+
+    def __init__(self, apikey, subdomain, nodename=''):
+        super(ChargifyPrice, self).__init__(apikey, subdomain)
+        if nodename:
+            self.__xmlnodename__ = nodename
+
+
+class ChargifyPricePoint(ChargifyBase):
+    __name__ = 'ChargifyPricePoint'
+    __attribute_types__ = {
+        # 'prices': 'ChargifyPrice' # TODO: show prices array, each element should be ChargifyPrice?
+    }
+    __xmlnodename__ = 'price_point'
+
+    def __init__(self, apikey, subdomain, nodename=''):
+        super(ChargifyPricePoint, self).__init__(apikey, subdomain)
+        if nodename:
+            self.__xmlnodename__ = nodename
+
+    def get_by_component_id(self,component_id):
+        return self._applyA(
+            self._get("/components/" + str(component_id) + "/price_points.xml"),
+            self.__name__,
+            "price_point"
+        )
+
+
 class ChargifyTransaction(ChargifyBase):
     
     __name__ = 'ChargifyTransaction'
@@ -803,6 +843,9 @@ class Chargify:
 
     def Component(self, nodename=''):
         return ChargifyComponent(self.api_key, self.sub_domain, nodename)
+
+    def PricePoint(self, nodename=''):
+        return ChargifyPricePoint(self.api_key, self.sub_domain, nodename)
 
     def CreditCard(self, nodename=''):
         return ChargifyCreditCard(self.api_key, self.sub_domain, nodename)

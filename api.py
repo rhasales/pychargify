@@ -146,10 +146,10 @@ class ChargifyBase(object):
                         self._applyS(childnodes.toxml(),
                         self.__attribute_types__[childnodes.nodeName],
                             childnodes.nodeName))
-                elif "type" in  childnodes.attributes.keys() and childnodes.attributes["type"] == "array" :
+                elif "type" in  childnodes.attributes.keys() and childnodes.attributes["type"].nodeValue == "array" :
                     children = list()
                     for subChildNode in childnodes.childNodes :
-                        children.apend(self.__get_object_from_node(subChildNode, subChildNode.nodeName))
+                        children.append(self.__get_object_from_node(subChildNode, self.__attribute_types__.get(subChildNode.nodeName)))
 
                     obj.__setattr__(childnodes.nodeName, children)
 
@@ -676,7 +676,7 @@ class ChargifyPrice(ChargifyBase):
 class ChargifyPricePoint(ChargifyBase):
     __name__ = 'ChargifyPricePoint'
     __attribute_types__ = {
-        'prices': 'ChargifyPrice'
+        'price': 'ChargifyPrice'
     }
     __xmlnodename__ = 'price_point'
 

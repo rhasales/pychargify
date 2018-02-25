@@ -22,6 +22,8 @@ Author: Paul Trippett (paul@pyhub.com)
 import httplib
 import base64
 import datetime
+from decimal import Decimal
+
 import iso8601
 from itertools import chain
 from xml.dom import minidom
@@ -99,7 +101,7 @@ class ChargifyBase(object):
     """
     __ignore__ = ['api_key', 'sub_domain', 'base_host', 'request_host',
         'id', '__xmlnodename__']
-    
+
     __single_value_attribute_types__ = {}
 
     api_key = ''
@@ -144,6 +146,13 @@ class ChargifyBase(object):
                         self._applyS(childnodes.toxml(),
                         self.__attribute_types__[childnodes.nodeName],
                             childnodes.nodeName))
+                elif "type" in  childnodes.attributes.keys() and childnodes.attributes["type"].nodeValue == "array" :
+                    children = list()
+                    for subChildNode in childnodes.childNodes :
+                        children.append(self.__get_object_from_node(subChildNode, self.__attribute_types__.get(subChildNode.nodeName)))
+
+                    obj.__setattr__(childnodes.nodeName, children)
+
                 else:
                     node_value = self.__get_xml_value(childnodes.childNodes)
                     if "type" in  childnodes.attributes.keys():
@@ -154,9 +163,11 @@ class ChargifyBase(object):
                                     iso8601.parse(node_value))
                             elif node_type.nodeValue == 'integer':
                                 node_value = int(node_value)
+                            elif node_type.nodeValue == 'decimal':
+                                node_value = Decimal(node_value)
                     elif obj.__single_value_attribute_types__.has_key(childnodes.nodeName) :
                         node_value = obj.__single_value_attribute_types__.get(childnodes.nodeName)(node_value)
-                        
+
                     obj.__setattr__(childnodes.nodeName, node_value)
         return obj
 
@@ -296,18 +307,18 @@ class ChargifyBase(object):
 
         # Unprocessable Entity Error
         elif response.status == 422:
-            
+
             error = ChargifyUnProcessableEntity()
             xml = response.read()
             if xml :
                 dom = minidom.parseString(self.fix_xml_encoding(xml))
                 error.errors = []
                 for errorNodes in dom.childNodes :
-                    
+
                     for errorNode in errorNodes.childNodes :
-                        
+
                         error.errors.append(errorNode.firstChild.data)
-                
+
             raise error
 
         # Generic Server Errors
@@ -558,7 +569,7 @@ class ChargifySubscription(ChargifyBase):
         
         @param product_handle: the new product
         """
-        
+
         xml = """<?xml version="1.0" encoding="UTF-8"?>
 <subscription>
   <product_handle>%s</product_handle>
@@ -643,8 +654,47 @@ class ChargifyComponent(ChargifyBase):
                                       ".xml"), self.__name__, 'component')
 
 
+class ChargifyPrice(ChargifyBase):
+    __name__ = 'ChargifyPrice'
+    __attribute_types__ = {}
+    __xmlnodename__ = 'price'
+
+    id = None
+    component_id = None
+    starting_quantity = ''
+    ending_quantity = ''
+    unit_price = ''
+    price_point_id = None
+    formatted_unit_price = ''
+
+    def __init__(self, apikey, subdomain, nodename=''):
+        super(ChargifyPrice, self).__init__(apikey, subdomain)
+        if nodename:
+            self.__xmlnodename__ = nodename
+
+
+class ChargifyPricePoint(ChargifyBase):
+    __name__ = 'ChargifyPricePoint'
+    __attribute_types__ = {
+        'price': 'ChargifyPrice'
+    }
+    __xmlnodename__ = 'price_point'
+
+    def __init__(self, apikey, subdomain, nodename=''):
+        super(ChargifyPricePoint, self).__init__(apikey, subdomain)
+        if nodename:
+            self.__xmlnodename__ = nodename
+
+    def get_by_component_id(self,component_id):
+        return self._applyA(
+            self._get("/components/" + str(component_id) + "/price_points.xml"),
+            self.__name__,
+            "price_point"
+        )
+
+
 class ChargifyTransaction(ChargifyBase):
-    
+
     __name__ = 'ChargifyTransaction'
     __attribute_types__ = {}
     __single_value_attribute_types__ = {
@@ -655,7 +705,7 @@ class ChargifyTransaction(ChargifyBase):
         "subscription_id" : int
     }
     __xmlnodename__ = 'transaction'
-    
+
     transaction_type = None
     id = None
     amount_in_cents = None
@@ -670,13 +720,13 @@ class ChargifyTransaction(ChargifyBase):
     kind = None
     gateway_transaction_id = None
     gateway_order_id = None
-    
+
     def getByCustomerId(self, customer_id):
         return self._applyA(self._get('/subscriptions/' + str(customer_id) +
             '/transactions.xml'), self.__name__, 'transaction')
 
 class ChargifyMigration(ChargifyBase):
-    
+
     __name__ = 'ChargifyMigration'
     __attribute_types__ = {}
     __single_value_attribute_types__ = {
@@ -686,7 +736,7 @@ class ChargifyMigration(ChargifyBase):
         "credit_applied_in_cents" : int
     }
     __xmlnodename__ = 'migration'
-    
+
     prorated_adjustment_in_cents = None
     charge_in_cents = None
     payment_due_in_cents = None
@@ -803,6 +853,9 @@ class Chargify:
 
     def Component(self, nodename=''):
         return ChargifyComponent(self.api_key, self.sub_domain, nodename)
+
+    def PricePoint(self, nodename=''):
+        return ChargifyPricePoint(self.api_key, self.sub_domain, nodename)
 
     def CreditCard(self, nodename=''):
         return ChargifyCreditCard(self.api_key, self.sub_domain, nodename)

@@ -28,7 +28,6 @@ import iso8601
 from itertools import chain
 from xml.dom import minidom
 
-
 try:
     import json
 except Exception, e:
@@ -100,7 +99,7 @@ class ChargifyBase(object):
     @license    GNU General Public License
     """
     __ignore__ = ['api_key', 'sub_domain', 'base_host', 'request_host',
-        'id', '__xmlnodename__']
+                  'id', '__xmlnodename__']
 
     __single_value_attribute_types__ = {}
 
@@ -143,19 +142,20 @@ class ChargifyBase(object):
             if childnodes.nodeType == 1 and not childnodes.nodeName == '':
                 if childnodes.nodeName in self.__attribute_types__:
                     obj.__setattr__(childnodes.nodeName,
-                        self._applyS(childnodes.toxml(),
-                        self.__attribute_types__[childnodes.nodeName],
-                            childnodes.nodeName))
-                elif "type" in  childnodes.attributes.keys() and childnodes.attributes["type"].nodeValue == "array" :
+                                    self._applyS(childnodes.toxml(),
+                                                 self.__attribute_types__[childnodes.nodeName],
+                                                 childnodes.nodeName))
+                elif "type" in childnodes.attributes.keys() and childnodes.attributes["type"].nodeValue == "array":
                     children = list()
-                    for subChildNode in childnodes.childNodes :
-                        children.append(self.__get_object_from_node(subChildNode, self.__attribute_types__.get(subChildNode.nodeName)))
+                    for subChildNode in childnodes.childNodes:
+                        children.append(self.__get_object_from_node(subChildNode, self.__attribute_types__.get(
+                            subChildNode.nodeName)))
 
                     obj.__setattr__(childnodes.nodeName, children)
 
                 else:
                     node_value = self.__get_xml_value(childnodes.childNodes)
-                    if "type" in  childnodes.attributes.keys():
+                    if "type" in childnodes.attributes.keys():
                         node_type = childnodes.attributes["type"]
                         if node_value:
                             if node_type.nodeValue == 'datetime':
@@ -163,9 +163,11 @@ class ChargifyBase(object):
                                     iso8601.parse(node_value))
                             elif node_type.nodeValue == 'integer':
                                 node_value = int(node_value)
+                            elif node_type.nodeValue == 'boolean':
+                                node_value = True if node_value == "true" else False
                             elif node_type.nodeValue == 'decimal':
                                 node_value = Decimal(node_value)
-                    elif obj.__single_value_attribute_types__.has_key(childnodes.nodeName) :
+                    elif obj.__single_value_attribute_types__.has_key(childnodes.nodeName):
                         node_value = obj.__single_value_attribute_types__.get(childnodes.nodeName)(node_value)
 
                     obj.__setattr__(childnodes.nodeName, node_value)
@@ -209,10 +211,28 @@ class ChargifyBase(object):
         for property, value in self.__dict__.iteritems():
             if not property in self.__ignore__:
                 if property in self.__attribute_types__:
-                    element.appendChild(value._toxml(dom))
+                    if isinstance(value, list):
+
+                        child = minidom.Element(property)
+
+                        for item in value:
+                            child.appendChild(item._toxml(dom))
+
+                        element.appendChild(child)
+
+                    else:
+                        element.appendChild(value._toxml(dom))
                 else:
                     node = minidom.Element(property)
-                    node_txt = dom.createTextNode(str(value))
+
+                    if type(value) == bool:
+                        value = "true" if value else "false"
+                        node.setAttribute("type", "boolean")
+
+                    elif type(value) == int:
+                        node.setAttribute("type", "integer")
+
+                    node_txt = dom.createTextNode(unicode(value).encode('ascii', errors='ignore'))
                     node.appendChild(node_txt)
                     element.appendChild(node)
         return element
@@ -310,13 +330,12 @@ class ChargifyBase(object):
 
             error = ChargifyUnProcessableEntity()
             xml = response.read()
-            if xml :
+            if xml:
                 dom = minidom.parseString(self.fix_xml_encoding(xml))
                 error.errors = []
-                for errorNodes in dom.childNodes :
+                for errorNodes in dom.childNodes:
 
-                    for errorNode in errorNodes.childNodes :
-
+                    for errorNode in errorNodes.childNodes:
                         error.errors.append(errorNode.firstChild.data)
 
             raise error
@@ -342,23 +361,23 @@ class ChargifyBase(object):
 
         if self.id:
             obj = self._applyS(self._put('/' + url + '/' + str(self.id) + '.xml',
-                dom.toxml(encoding="utf-8")), self.__name__, node_name)
+                                         dom.toxml(encoding="utf-8")), self.__name__, node_name)
             if obj:
                 if type(obj.updated_at) == datetime.datetime:
                     if (obj.updated_at.day == request_made['day']) and \
-                        (obj.updated_at.month == request_made['month']) and \
-                        (obj.updated_at.year == request_made['year']):
+                            (obj.updated_at.month == request_made['month']) and \
+                            (obj.updated_at.year == request_made['year']):
                         self.saved = True
                         return (True, obj)
             return (False, obj)
         else:
             obj = self._applyS(self._post('/' + url + '.xml',
-                dom.toxml(encoding="utf-8")), self.__name__, node_name)
+                                          dom.toxml(encoding="utf-8")), self.__name__, node_name)
             if obj:
                 if type(obj.updated_at) == datetime.datetime:
                     if (obj.updated_at.day == request_made['day']) and \
-                        (obj.updated_at.month == request_made['month']) and \
-                        (obj.updated_at.year == request_made['year']):
+                            (obj.updated_at.month == request_made['month']) and \
+                            (obj.updated_at.year == request_made['year']):
                         return (True, obj)
             return (False, obj)
 
@@ -391,15 +410,15 @@ class ChargifyCustomer(ChargifyBase):
 
     def getAll(self):
         return self._applyA(self._get('/customers.xml'),
-            self.__name__, 'customer')
+                            self.__name__, 'customer')
 
     def getById(self, id):
         return self._applyS(self._get('/customers/' + str(id) + '.xml'),
-            self.__name__, 'customer')
+                            self.__name__, 'customer')
 
     def getByReference(self, reference):
         return self._applyS(self._get('/customers/lookup.xml?reference=' +
-            str(reference)), self.__name__, 'customer')
+                                      str(reference)), self.__name__, 'customer')
 
     def getSubscriptions(self):
         obj = ChargifySubscription(self.api_key, self.sub_domain)
@@ -434,22 +453,22 @@ class ChargifyProduct(ChargifyBase):
 
     def getAll(self):
         return self._applyA(self._get('/products.xml'),
-            self.__name__, 'product')
+                            self.__name__, 'product')
 
     def getById(self, id):
         return self._applyS(self._get('/products/' + str(id) + '.xml'),
-            self.__name__, 'product')
+                            self.__name__, 'product')
 
     def getByHandle(self, handle):
         return self._applyS(self._get('/products/handle/' + str(handle) +
-            '.xml'), self.__name__, 'product')
+                                      '.xml'), self.__name__, 'product')
 
     def save(self):
         return self._save('products', 'product')
 
     def getPaymentPageUrl(self):
         return ('https://' + self.request_host + '/h/' +
-            self.id + '/subscriptions/new')
+                self.id + '/subscriptions/new')
 
     def getPriceInDollars(self):
         return round(float(self.price_in_cents) / 100, 2)
@@ -465,6 +484,25 @@ class Usage(object):
         self.memo = memo
 
 
+class ChargifySubscriptionComponent(ChargifyBase):
+    """
+    Represents Chargify Subscription components
+    @license    GNU General Public License
+    """
+    __name__ = 'ChargifySubscription'
+    __attribute_types__ = {
+    }
+    __xmlnodename__ = 'component'
+
+    component_id = None
+    enabled = False
+
+    def __init__(self, apikey, subdomain, nodename=''):
+        super(ChargifySubscriptionComponent, self).__init__(apikey, subdomain)
+        if nodename:
+            self.__xmlnodename__ = nodename
+
+
 class ChargifySubscription(ChargifyBase):
     """
     Represents Chargify Subscriptions
@@ -474,7 +512,8 @@ class ChargifySubscription(ChargifyBase):
     __attribute_types__ = {
         'customer': 'ChargifyCustomer',
         'product': 'ChargifyProduct',
-        'credit_card': 'ChargifyCreditCard'
+        'credit_card': 'ChargifyCreditCard',
+        'components': "ChargifySubscriptionComponent"
     }
     __xmlnodename__ = 'subscription'
 
@@ -501,7 +540,7 @@ class ChargifySubscription(ChargifyBase):
 
     def getAll(self):
         return self._applyA(self._get('/subscriptions.xml'),
-            self.__name__, 'subscription')
+                            self.__name__, 'subscription')
 
     def createUsage(self, component_id, quantity, memo=None):
         """
@@ -510,24 +549,24 @@ class ChargifySubscription(ChargifyBase):
 
         data = '''<?xml version="1.0" encoding="UTF-8"?><usage>
             <quantity>%d</quantity><memo>%s</memo></usage>''' % (
-                quantity, memo or "")
+            quantity, memo or "")
 
         dom = minidom.parseString(self.fix_xml_encoding(
             self._post('/subscriptions/%s/components/%d/usages.xml' % (
                 str(self.id), component_id), data)))
 
         return [Usage(*tuple(chain.from_iterable([[x.data
-            for x in i.childNodes] or [None] for i in n.childNodes])))
-            for n in dom.getElementsByTagName('usage')]
+                                                   for x in i.childNodes] or [None] for i in n.childNodes])))
+                for n in dom.getElementsByTagName('usage')]
 
     def getByCustomerId(self, customer_id):
         return self._applyA(self._get('/customers/' + str(customer_id) +
-            '/subscriptions.xml'), self.__name__, 'subscription')
+                                      '/subscriptions.xml'), self.__name__, 'subscription')
 
     def getBySubscriptionId(self, subscription_id):
-        #Throws error if more than element is returned
+        # Throws error if more than element is returned
         i, = self._applyA(self._get('/subscriptions/' + str(subscription_id) +
-            '.xml'), self.__name__, 'subscription')
+                                    '.xml'), self.__name__, 'subscription')
         return i
 
     def save(self):
@@ -548,10 +587,10 @@ class ChargifySubscription(ChargifyBase):
   <subscription>
     <product_handle>%s</product_handle>
   </subscription>""" % (toProductHandle)
-        #end improper indentation
+        # end improper indentation
 
         return self._applyS(self._put("/subscriptions/" + str(self.id) + ".xml",
-            xml), self.__name__, "subscription")
+                                      xml), self.__name__, "subscription")
 
     def delayed_cancel(self, message):
         xml = """<?xml version="1.0" encoding="UTF-8"?>
@@ -595,20 +634,20 @@ class ChargifySubscription(ChargifyBase):
 <migration>
   <product_id>%s</product_id>
 </migration>""" % (product_id)
-        #end improper indentation
+        # end improper indentation
 
         return self._applyS(self._post("/subscriptions/" + str(self.id) + "/migrations/preview.xml",
-            xml), "ChargifyMigration", "migration")
+                                       xml), "ChargifyMigration", "migration")
 
     def migrate(self, product_id):
         xml = """<?xml version="1.0" encoding="UTF-8"?>
 <migration>
   <product_id>%s</product_id>
 </migration>""" % (product_id)
-        #end improper indentation
+        # end improper indentation
 
         return self._applyS(self._post("/subscriptions/" + str(self.id) + "/migrations.xml",
-            xml), "ChargifySubscription", "subscription")
+                                       xml), "ChargifySubscription", "subscription")
 
 
 class ChargifyComponent(ChargifyBase):
@@ -617,7 +656,9 @@ class ChargifyComponent(ChargifyBase):
     @license    GNU General Public License
     """
     __name__ = 'ChargifyComponent'
-    __attribute_types__ = {}
+    __attribute_types__ = {
+        'price': 'ChargifyPrice'
+    }
     __xmlnodename__ = 'component'
 
     allocated_quantity = None
@@ -629,7 +670,11 @@ class ChargifyComponent(ChargifyBase):
 
     def get_all_by_subscription_id(self, subscription_id):
         return self._applyA(self._get('/subscriptions/' + str(subscription_id) +
-            '/components.xml'), self.__name__, 'component')
+                                      '/components.xml'), self.__name__, 'component')
+
+    def get_all_by_product_family(self, product_family_id):
+        return self._applyA(self._get('/product_families/' + str(product_family_id) +
+                                      '/components.xml'), self.__name__, 'component')
 
     def allocate(self, subscription_id, component_id, quantity):
         """
@@ -645,11 +690,11 @@ class ChargifyComponent(ChargifyBase):
   <quantity>%s</quantity>
 </allocation>""" % (quantity)
 
-        return self._applyS(self._post("/subscriptions/" + str(subscription_id) + "/components/" + str(component_id) + "/allocations.xml",xml),
-                            "ChargifyComponent", "component")
+        return self._applyS(self._post(
+            "/subscriptions/" + str(subscription_id) + "/components/" + str(component_id) + "/allocations.xml", xml),
+            "ChargifyComponent", "component")
 
     def get_by_component_id(self, subscription_id, component_id):
-
         return self._applyA(self._get("/subscriptions/" + str(subscription_id) + '/components/' + str(component_id) +
                                       ".xml"), self.__name__, 'component')
 
@@ -685,7 +730,7 @@ class ChargifyPricePoint(ChargifyBase):
         if nodename:
             self.__xmlnodename__ = nodename
 
-    def get_by_component_id(self,component_id):
+    def get_by_component_id(self, component_id):
         return self._applyA(
             self._get("/components/" + str(component_id) + "/price_points.xml"),
             self.__name__,
@@ -694,15 +739,14 @@ class ChargifyPricePoint(ChargifyBase):
 
 
 class ChargifyTransaction(ChargifyBase):
-
     __name__ = 'ChargifyTransaction'
     __attribute_types__ = {}
     __single_value_attribute_types__ = {
-        "id" : int,
-        "amount_in_cents" : int,
-        "starting_balance_in_cents" : int,
-        "ending_balance_in_cents" : int,
-        "subscription_id" : int
+        "id": int,
+        "amount_in_cents": int,
+        "starting_balance_in_cents": int,
+        "ending_balance_in_cents": int,
+        "subscription_id": int
     }
     __xmlnodename__ = 'transaction'
 
@@ -723,17 +767,17 @@ class ChargifyTransaction(ChargifyBase):
 
     def getByCustomerId(self, customer_id):
         return self._applyA(self._get('/subscriptions/' + str(customer_id) +
-            '/transactions.xml'), self.__name__, 'transaction')
+                                      '/transactions.xml'), self.__name__, 'transaction')
+
 
 class ChargifyMigration(ChargifyBase):
-
     __name__ = 'ChargifyMigration'
     __attribute_types__ = {}
     __single_value_attribute_types__ = {
-        "prorated_adjustment_in_cents" : int,
-        "charge_in_cents" : int,
-        "payment_due_in_cents" : int,
-        "credit_applied_in_cents" : int
+        "prorated_adjustment_in_cents": int,
+        "charge_in_cents": int,
+        "payment_due_in_cents": int,
+        "credit_applied_in_cents": int
     }
     __xmlnodename__ = 'migration'
 
@@ -741,6 +785,7 @@ class ChargifyMigration(ChargifyBase):
     charge_in_cents = None
     payment_due_in_cents = None
     credit_applied_in_cents = None
+
 
 class ChargifyCreditCard(ChargifyBase):
     """
@@ -785,12 +830,12 @@ class ChargifyCreditCard(ChargifyBase):
       <zip>%s</zip>
     </credit_card_attributes>
   </subscription>""" % (self.full_number, self.expiration_month,
-          self.expiration_year, self.cvv, self.first_name,
-          self.last_name, self.zip)
+                        self.expiration_year, self.cvv, self.first_name,
+                        self.last_name, self.zip)
         # end improper indentation
 
         return self._applyS(self._put(path, data),
-            self.__name__, "subscription")
+                            self.__name__, "subscription")
 
 
 class ChargifyPostBack(ChargifyBase):
@@ -850,6 +895,9 @@ class Chargify:
 
     def Subscription(self, nodename=''):
         return ChargifySubscription(self.api_key, self.sub_domain, nodename)
+
+    def SubscriptionComponent(self, nodename=''):
+        return ChargifySubscriptionComponent(self.api_key, self.sub_domain, nodename)
 
     def Component(self, nodename=''):
         return ChargifyComponent(self.api_key, self.sub_domain, nodename)

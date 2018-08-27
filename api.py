@@ -601,6 +601,10 @@ class ChargifySubscription(ChargifyBase):
   </cancellation_message>
 </subscription>""" % (message)
 
+        xml = self._put("/subscriptions/" + str(self.id) + ".xml", xml)
+        print xml
+        return None
+
     def delayed_product_change(self, product_handle):
         """
         This method schedules the product change to happen automatically at the 

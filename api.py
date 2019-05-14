@@ -592,6 +592,11 @@ class ChargifySubscription(ChargifyBase):
         return self._applyS(self._put("/subscriptions/" + str(self.id) + ".xml",
                                       xml), self.__name__, "subscription")
 
+    def remove_delayed_cancel(self):
+        xml = """"""
+
+        return self._delete("/subscriptions/" + str(self.id) + "/delayed_cancel.xml", xml)
+
     def delayed_cancel(self, message):
         xml = """<?xml version="1.0" encoding="UTF-8"?>
 <subscription>
@@ -601,9 +606,7 @@ class ChargifySubscription(ChargifyBase):
   </cancellation_message>
 </subscription>""" % (message)
 
-        xml = self._put("/subscriptions/" + str(self.id) + ".xml", xml)
-        print xml
-        return None
+        return self._put("/subscriptions/" + str(self.id) + ".xml", xml)
 
     def delayed_product_change(self, product_handle):
         """

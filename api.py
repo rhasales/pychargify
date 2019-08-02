@@ -22,6 +22,7 @@ Author: Paul Trippett (paul@pyhub.com)
 import httplib
 import base64
 import datetime
+import urllib
 from decimal import Decimal
 
 import iso8601
@@ -542,6 +543,12 @@ class ChargifySubscription(ChargifyBase):
         return self._applyA(self._get('/subscriptions.xml'),
                             self.__name__, 'subscription')
 
+    def filter(self, **kwargs):
+        params = urllib.urlencode(kwargs)
+
+        return self._applyA(self._get('/subscriptions.xml?' + params),
+                            self.__name__, 'subscription')
+
     def createUsage(self, component_id, quantity, memo=None):
         """
         Creates usage for the given component id.
@@ -574,6 +581,9 @@ class ChargifySubscription(ChargifyBase):
 
     def resetBalance(self):
         self._put("/subscriptions/" + str(self.id) + "/reset_balance.xml", "")
+
+    def purge(self):
+        self._post("/subscriptions/" + str(self.id) + "/purge.xml?ack=" + str(self.customer.id), "")
 
     def getTransactions(self):
         obj = ChargifyTransaction(self.api_key, self.sub_domain)

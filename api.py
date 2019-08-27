@@ -413,6 +413,12 @@ class ChargifyCustomer(ChargifyBase):
         return self._applyA(self._get('/customers.xml'),
                             self.__name__, 'customer')
 
+    def filter(self, **kwargs):
+        params = urllib.urlencode(kwargs)
+
+        return self._applyA(self._get('/customers.xml?' + params),
+                            self.__name__, 'customer')
+
     def getById(self, id):
         return self._applyS(self._get('/customers/' + str(id) + '.xml'),
                             self.__name__, 'customer')
@@ -617,6 +623,16 @@ class ChargifySubscription(ChargifyBase):
 </subscription>""" % (message)
 
         return self._put("/subscriptions/" + str(self.id) + ".xml", xml)
+
+    def cancel(self, message):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<subscription>
+  <cancellation_message>
+    %s
+  </cancellation_message>
+</subscription>""" % (message)
+
+        return self._applyS(self._delete("/subscriptions/" + str(self.id) + ".xml", xml), self.__name__, "subscription")
 
     def delayed_product_change(self, product_handle):
         """

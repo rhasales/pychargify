@@ -19,7 +19,7 @@ Created on Nov 20, 2009
 Author: Paul Trippett (paul@pyhub.com)
 '''
 
-import httplib
+from http import client as httplib
 import base64
 import datetime
 import urllib
@@ -31,15 +31,15 @@ from xml.dom import minidom
 
 try:
     import json
-except Exception, e:
+except Exception as e:
     try:
         import simplejson as json
-    except Exception, e:
+    except Exception as e:
         try:
             # For AppEngine users
             import django.utils.simplejson as json
-        except Exception, e:
-            print "No Json library found... Exiting."
+        except Exception as e:
+            print("No Json library found... Exiting.")
             exit()
 
 
@@ -180,7 +180,7 @@ class ChargifyBase(object):
         Decodes and re-encodes with xml characters.
         Strips out whitespace "text nodes".
         """
-        return unicode(''.join([i.strip() for i in xml.split('\n')])).encode(
+        return str(''.join([i.strip() for i in xml.split('\n')])).encode(
             'CP1252', 'replace').decode('utf-8', 'ignore').encode(
             'ascii', 'xmlcharrefreplace')
 
@@ -233,7 +233,7 @@ class ChargifyBase(object):
                     elif type(value) == int:
                         node.setAttribute("type", "integer")
 
-                    node_txt = dom.createTextNode(unicode(value).encode('ascii', errors='ignore'))
+                    node_txt = dom.createTextNode(str(value).encode('ascii', errors='ignore'))
                     node.appendChild(node_txt)
                     element.appendChild(node)
         return element
@@ -649,7 +649,8 @@ class ChargifySubscription(ChargifyBase):
 </subscription>""" % (product_handle)
 
         xml = self._put("/subscriptions/" + str(self.id) + ".xml", xml)
-        print xml
+        print
+        xml
         return None
 
     def unsubscribe(self, message):
@@ -917,7 +918,8 @@ class Chargify:
             self.sub_domain = credentials['sub_domain']
             return
         else:
-            print "Need either an api_key and subdomain, or credential file. Exiting."
+            print
+            "Need either an api_key and subdomain, or credential file. Exiting."
             exit()
 
     def Customer(self, nodename=''):

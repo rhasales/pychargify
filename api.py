@@ -435,13 +435,35 @@ class ChargifyCustomer(ChargifyBase):
         return self._save('customers', 'customer')
 
 
+class ChargifyPublicSignupPage(ChargifyBase):
+    """
+    Represents Chargify Public Signup Page
+    @license    GNU General Public License
+    """
+    __name__ = 'ChargifyPublicSignupPage'
+    __attribute_types__ = {}
+    __xmlnodename__ = 'public_signup_page'
+
+    id = None
+    return_params = {}
+    return_url = ''
+    url = ''
+
+    def __init__(self, apikey, subdomain, nodename=''):
+        super(ChargifyPublicSignupPage, self).__init__(apikey, subdomain)
+        if nodename:
+            self.__xmlnodename__ = nodename
+
+
 class ChargifyProduct(ChargifyBase):
     """
     Represents Chargify Products
     @license    GNU General Public License
     """
     __name__ = 'ChargifyProduct'
-    __attribute_types__ = {}
+    __attribute_types__ = {
+        'public_signup_page': 'ChargifyPublicSignupPage'
+    }
     __xmlnodename__ = 'product'
 
     id = None

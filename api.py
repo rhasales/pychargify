@@ -431,6 +431,9 @@ class ChargifyCustomer(ChargifyBase):
         obj = ChargifySubscription(self.api_key, self.sub_domain)
         return obj.getByCustomerId(self.id)
 
+    def delete(self):
+        return self._delete("/customers/" + str(self.id) + ".xml", '')
+
     def save(self):
         return self._save('customers', 'customer')
 

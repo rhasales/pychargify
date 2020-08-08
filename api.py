@@ -233,7 +233,7 @@ class ChargifyBase(object):
                     elif type(value) == int:
                         node.setAttribute("type", "integer")
 
-                    node_txt = dom.createTextNode(str(value).encode('ascii', errors='ignore'))
+                    node_txt = dom.createTextNode(unicode(value).encode('ascii', errors='ignore'))
                     node.appendChild(node_txt)
                     element.appendChild(node)
         return element

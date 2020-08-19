@@ -25,9 +25,11 @@ import datetime
 import urllib
 from decimal import Decimal
 
-import iso8601
+from dateutil.parser import isoparse
 from itertools import chain
 from xml.dom import minidom
+
+from django.utils.encoding import force_bytes
 
 try:
     import json
@@ -42,6 +44,11 @@ except Exception as e:
             print("No Json library found... Exiting.")
             exit()
 
+def as_bytes(value, encoding="utf-8"):
+    if isinstance(value, str):
+        return value.encode(encoding)
+
+    return value
 
 class ChargifyError(Exception):
     """
@@ -160,15 +167,14 @@ class ChargifyBase(object):
                         node_type = childnodes.attributes["type"]
                         if node_value:
                             if node_type.nodeValue == 'datetime':
-                                node_value = datetime.datetime.fromtimestamp(
-                                    iso8601.parse(node_value))
+                                node_value = isoparse(node_value)
                             elif node_type.nodeValue == 'integer':
                                 node_value = int(node_value)
                             elif node_type.nodeValue == 'boolean':
                                 node_value = True if node_value == "true" else False
                             elif node_type.nodeValue == 'decimal':
                                 node_value = Decimal(node_value)
-                    elif obj.__single_value_attribute_types__.has_key(childnodes.nodeName):
+                    elif childnodes.nodeName in obj.__single_value_attribute_types__:
                         node_value = obj.__single_value_attribute_types__.get(childnodes.nodeName)(node_value)
 
                     obj.__setattr__(childnodes.nodeName, node_value)
@@ -180,6 +186,8 @@ class ChargifyBase(object):
         Decodes and re-encodes with xml characters.
         Strips out whitespace "text nodes".
         """
+        if isinstance(xml, bytes):
+            xml = xml.decode("utf-8")
         return str(''.join([i.strip() for i in xml.split('\n')])).encode(
             'CP1252', 'replace').decode('utf-8', 'ignore').encode(
             'ascii', 'xmlcharrefreplace')
@@ -209,7 +217,7 @@ class ChargifyBase(object):
         Return a XML Representation of the object
         """
         element = minidom.Element(self.__xmlnodename__)
-        for property, value in self.__dict__.iteritems():
+        for property, value in self.__dict__.items():
             if not property in self.__ignore__:
                 if property in self.__attribute_types__:
                     if isinstance(value, list):
@@ -224,7 +232,7 @@ class ChargifyBase(object):
                     else:
                         element.appendChild(value._toxml(dom))
                 else:
-                    node = minidom.Element(property)
+                    node = dom.createElement(property)
 
                     if type(value) == bool:
                         value = "true" if value else "false"
@@ -233,7 +241,7 @@ class ChargifyBase(object):
                     elif type(value) == int:
                         node.setAttribute("type", "integer")
 
-                    node_txt = dom.createTextNode(str(value).encode('ascii', errors='ignore'))
+                    node_txt = dom.createTextNode(str(value).encode('ascii', errors='ignore').decode("utf-8"))
                     node.appendChild(node_txt)
                     element.appendChild(node)
         return element
@@ -311,7 +319,7 @@ class ChargifyBase(object):
         # print('url: %s' % url)
         # print('method: %s' % method)
 
-        http.send(data)
+        http.send(as_bytes(data))
         response = http.getresponse()
 
         # Unauthorized Error
@@ -383,7 +391,7 @@ class ChargifyBase(object):
             return (False, obj)
 
     def _get_auth_string(self):
-        return base64.encodestring('%s:%s' % (self.api_key, 'x'))[:-1]
+        return base64.encodebytes(force_bytes('%s:%s' % (self.api_key, 'x'))).decode('utf-8')[:-1]
 
 
 class ChargifyCustomer(ChargifyBase):

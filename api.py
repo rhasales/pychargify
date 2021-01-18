@@ -22,7 +22,7 @@ Author: Paul Trippett (paul@pyhub.com)
 from http import client as httplib
 import base64
 import datetime
-import urllib
+from urllib.parse import urlencode
 from decimal import Decimal
 
 from dateutil.parser import isoparse
@@ -423,7 +423,7 @@ class ChargifyCustomer(ChargifyBase):
                             self.__name__, 'customer')
 
     def filter(self, **kwargs):
-        params = urllib.urlencode(kwargs)
+        params = urlencode(kwargs)
 
         return self._applyA(self._get('/customers.xml?' + params),
                             self.__name__, 'customer')
@@ -584,7 +584,7 @@ class ChargifySubscription(ChargifyBase):
                             self.__name__, 'subscription')
 
     def filter(self, **kwargs):
-        params = urllib.urlencode(kwargs)
+        params = urlencode(kwargs)
 
         return self._applyA(self._get('/subscriptions.xml?' + params),
                             self.__name__, 'subscription')
